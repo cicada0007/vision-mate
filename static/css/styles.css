@@ -1,0 +1,152 @@
+/* Main Styles for Walking Stick Web Interface */
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.card-header {
+    border-bottom: none;
+    padding: 15px 20px;
+}
+
+.card-body {
+    padding: 20px;
+}
+
+/* Camera Feed */
+#camera-placeholder {
+    height: 360px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+#camera-feed {
+    max-height: 480px;
+    border-radius: 5px;
+}
+
+/* Emergency Button */
+#emergency-button {
+    font-weight: bold;
+    padding: 15px;
+    transition: all 0.3s;
+}
+
+#emergency-button:hover {
+    transform: scale(1.02);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+}
+
+/* Sensor Data Visualizations */
+.progress {
+    height: 10px;
+    border-radius: 5px;
+    background-color: #e9ecef;
+}
+
+/* Fall Alert */
+#fall-alert {
+    font-weight: bold;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Obstacle Items */
+.obstacle-item {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-left: 5px solid #007bff;
+    transition: all 0.3s;
+}
+
+.obstacle-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.obstacle-icon {
+    font-size: 24px;
+    margin-right: 10px;
+    color: #007bff;
+}
+
+/* Map Container */
+#map {
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Status Badges */
+.badge {
+    padding: 7px 12px;
+    font-weight: normal;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+    .container-fluid {
+        padding: 0 10px;
+    }
+    
+    #camera-feed {
+        max-height: 300px;
+    }
+    
+    #map {
+        height: 200px !important;
+    }
+}
+
+/* Switch Toggle */
+.form-check-input:checked {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+/* Connection Status Indicator */
+#connection-status {
+    transition: all 0.3s;
+}
+
+#connection-status.connected {
+    background-color: #28a745;
+}
+
+/* System Status List */
+.list-group-item {
+    border: none;
+    padding: 12px 15px;
+    margin-bottom: 5px;
+    border-radius: 5px !important;
+    background-color: #f8f9fa;
+} 
