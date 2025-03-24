@@ -61,6 +61,46 @@ This project provides a web interface for connecting to and controlling a smart 
 
 ## Installation
 
+### Prerequisites
+- Python 3.6 or higher
+- pip package manager
+- Git (optional)
+
+### Windows Development Setup
+1. Create and activate virtual environment:
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+2. Install Windows-specific requirements:
+```bash
+pip install -r requirements-windows.txt
+```
+
+3. If you encounter module issues, try installing core dependencies individually:
+```bash
+pip install flask flask-socketio opencv-python numpy pillow python-engineio python-socketio pyttsx3
+```
+
+4. Verify installations:
+```bash
+python -c "import flask; import flask_socketio; import cv2; import numpy; import pyttsx3"
+```
+
+### Raspberry Pi Setup
+1. Run the setup script:
+```bash
+chmod +x setup_pi.sh
+./setup_pi.sh
+```
+
+2. If modules are still missing after setup:
+```bash
+source venv/bin/activate
+pip install --no-cache-dir -r requirements.txt
+```
+
 ### On Raspberry Pi 4 B
 
 1. Install Raspberry Pi OS (64-bit recommended):
@@ -180,10 +220,62 @@ The web interface connects directly to the Walking Stick Python script. The `app
 
 ## Troubleshooting
 
-- If the camera feed doesn't appear, check that the camera is properly connected to the Raspberry Pi and that the walking stick software can access it.
-- If sensor data is not updating, verify that the respective sensors are properly connected and initialized.
-- If the web interface shows "Disconnected", ensure that the application is running and that there are no network issues between your browser and the server.
-- On Windows, if you encounter issues with specific packages, try installing them individually with pip.
+### Common Issues
+
+1. Module Not Found Errors
+   - Ensure virtual environment is activated
+   - Try reinstalling the specific module
+   - Check Python path with: `python -c "import sys; print(sys.path)"`
+
+2. OpenCV Issues
+   - Windows: `pip install opencv-python`
+   - Raspberry Pi: `pip install opencv-python-headless`
+
+3. GPIO Access (Raspberry Pi)
+   - Run with sudo if needed
+   - Verify user is in gpio group: `sudo usermod -a -G gpio $USER`
+
+4. Camera Access
+   - Check camera connection
+   - Enable camera interface (Raspberry Pi)
+   - Test camera: `python -c "import cv2; cap=cv2.VideoCapture(0)"`
+
+5. Audio Issues
+   - Install portaudio: `sudo apt-get install portaudio19-dev`
+   - Install pyttsx3: `pip install pyttsx3`
+
+### Environment Setup Tips
+
+1. Virtual Environment
+```bash
+# If venv creation fails:
+python -m pip install --upgrade virtualenv
+python -m virtualenv venv
+
+# If activation fails on Windows:
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+2. Package Management
+```bash
+# Clear pip cache
+pip cache purge
+
+# Force reinstall packages
+pip install --force-reinstall -r requirements.txt
+```
+
+3. System Checks
+```bash
+# Check Python version
+python --version
+
+# Check pip version
+pip --version
+
+# List installed packages
+pip list
+```
 
 ## Security Considerations
 
