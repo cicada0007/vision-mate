@@ -82,6 +82,53 @@ function setupEventListeners() {
             sendSpeakMessage();
         }
     });
+    
+    // GPIO Controls
+    
+    // LED Controls
+    document.getElementById('led-red-btn').addEventListener('click', function() {
+        controlLed(true, false, false);
+    });
+    
+    document.getElementById('led-green-btn').addEventListener('click', function() {
+        controlLed(false, true, false);
+    });
+    
+    document.getElementById('led-blue-btn').addEventListener('click', function() {
+        controlLed(false, false, true);
+    });
+    
+    document.getElementById('led-off-btn').addEventListener('click', function() {
+        controlLed(false, false, false);
+    });
+    
+    // Vibration Control
+    document.getElementById('vibrate-btn').addEventListener('click', function() {
+        const intensity = document.getElementById('vibration-intensity').value;
+        triggerVibration(0.5, intensity);
+    });
+    
+    // Buzzer Controls
+    document.getElementById('buzzer-short-btn').addEventListener('click', function() {
+        triggerBuzzer(0.3);
+    });
+    
+    document.getElementById('buzzer-long-btn').addEventListener('click', function() {
+        triggerBuzzer(1.0);
+    });
+    
+    // Alert Pattern Controls
+    document.getElementById('alert-info-btn').addEventListener('click', function() {
+        triggerAlert('info', 2.0);
+    });
+    
+    document.getElementById('alert-warning-btn').addEventListener('click', function() {
+        triggerAlert('warning', 2.0);
+    });
+    
+    document.getElementById('alert-danger-btn').addEventListener('click', function() {
+        triggerAlert('danger', 2.0);
+    });
 }
 
 // Update connection status in the UI
@@ -154,6 +201,11 @@ function updateDeviceStatus(data) {
         updateComponentStatus('gps', data.components_status.gps);
         updateComponentStatus('bluetooth', data.components_status.bluetooth);
         updateComponentStatus('model', data.components_status.model);
+    }
+    
+    // Update GPIO status
+    if (data.gpio_status) {
+        updateGpioStatus(data.gpio_status);
     }
 }
 
@@ -369,4 +421,151 @@ function initMap() {
             url: 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
         }
     });
+}
+
+// Control LED
+function controlLed(red, green, blue) {
+    if (!connected) {
+        alert('Cannot control LEDs - device not connected');
+        return;
+    }
+    
+    fetch('/api/led', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            red: red,
+            green: green,
+            blue: blue
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status !== 'success') {
+            alert('Failed to control LED: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to control LED: Network error');
+    });
+    
+    // Update button visual states
+    document.getElementById('led-red-btn').classList.toggle('active', red);
+    document.getElementById('led-green-btn').classList.toggle('active', green);
+    document.getElementById('led-blue-btn').classList.toggle('active', blue);
+}
+
+// Trigger vibration
+function triggerVibration(duration, intensity) {
+    if (!connected) {
+        alert('Cannot trigger vibration - device not connected');
+        return;
+    }
+    
+    fetch('/api/vibrate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            duration: duration,
+            intensity: intensity
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status !== 'success') {
+            alert('Failed to trigger vibration: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to trigger vibration: Network error');
+    });
+}
+
+// Trigger buzzer
+function triggerBuzzer(duration, pattern = null) {
+    if (!connected) {
+        alert('Cannot trigger buzzer - device not connected');
+        return;
+    }
+    
+    fetch('/api/buzz', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            duration: duration,
+            pattern: pattern
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status !== 'success') {
+            alert('Failed to trigger buzzer: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to trigger buzzer: Network error');
+    });
+}
+
+// Trigger alert pattern
+function triggerAlert(type, duration) {
+    if (!connected) {
+        alert('Cannot trigger alert pattern - device not connected');
+        return;
+    }
+    
+    fetch('/api/alert', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            type: type,
+            duration: duration
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status !== 'success') {
+            alert('Failed to trigger alert pattern: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to trigger alert pattern: Network error');
+    });
+}
+
+// Update GPIO status in the UI
+function updateGpioStatus(gpioStatus) {
+    // Update LED button states
+    document.getElementById('led-red-btn').classList.toggle('active', gpioStatus.led_red);
+    document.getElementById('led-green-btn').classList.toggle('active', gpioStatus.led_green);
+    document.getElementById('led-blue-btn').classList.toggle('active', gpioStatus.led_blue);
+    
+    // Add visual indicator for buzzer and vibration motor (optional)
+    if (gpioStatus.buzzer) {
+        document.getElementById('buzzer-short-btn').classList.add('pulse');
+        document.getElementById('buzzer-long-btn').classList.add('pulse');
+        setTimeout(() => {
+            document.getElementById('buzzer-short-btn').classList.remove('pulse');
+            document.getElementById('buzzer-long-btn').classList.remove('pulse');
+        }, 500);
+    }
+    
+    if (gpioStatus.vibration_motor) {
+        document.getElementById('vibrate-btn').classList.add('shake');
+        setTimeout(() => {
+            document.getElementById('vibrate-btn').classList.remove('shake');
+        }, 500);
+    }
 } 

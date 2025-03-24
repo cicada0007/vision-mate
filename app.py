@@ -63,6 +63,13 @@ device_status = {
         "gps": False,
         "bluetooth": False,
         "model": False
+    },
+    "gpio_status": {
+        "led_red": False,
+        "led_green": False,
+        "led_blue": False,
+        "vibration_motor": False,
+        "buzzer": False
     }
 }
 
@@ -105,6 +112,75 @@ def trigger_emergency():
             return jsonify({"status": "error", "message": str(e)})
     else:
         return jsonify({"status": "error", "message": "Walking stick module not available"})
+
+@app.route('/api/vibrate', methods=['POST'])
+def trigger_vibration():
+    """Trigger vibration motor"""
+    data = request.json
+    duration = data.get('duration', 0.5)
+    intensity = data.get('intensity', 100)
+    
+    if walking_stick_module and hasattr(walking_stick_module, 'vibrate'):
+        try:
+            walking_stick_module.vibrate(duration, intensity)
+            return jsonify({"status": "success", "message": f"Vibration activated: {duration}s at {intensity}% intensity"})
+        except Exception as e:
+            logger.error(f"Failed to trigger vibration: {e}")
+            return jsonify({"status": "error", "message": str(e)})
+    else:
+        return jsonify({"status": "error", "message": "Vibration function not available"})
+
+@app.route('/api/buzz', methods=['POST'])
+def trigger_buzzer():
+    """Trigger buzzer"""
+    data = request.json
+    duration = data.get('duration', 0.5)
+    pattern = data.get('pattern', None)
+    
+    if walking_stick_module and hasattr(walking_stick_module, 'buzz'):
+        try:
+            walking_stick_module.buzz(duration, pattern)
+            return jsonify({"status": "success", "message": f"Buzzer activated for {duration}s"})
+        except Exception as e:
+            logger.error(f"Failed to trigger buzzer: {e}")
+            return jsonify({"status": "error", "message": str(e)})
+    else:
+        return jsonify({"status": "error", "message": "Buzzer function not available"})
+
+@app.route('/api/led', methods=['POST'])
+def control_led():
+    """Control LEDs"""
+    data = request.json
+    red = data.get('red', False)
+    green = data.get('green', False)
+    blue = data.get('blue', False)
+    
+    if walking_stick_module and hasattr(walking_stick_module, 'set_led_color'):
+        try:
+            walking_stick_module.set_led_color(red, green, blue)
+            return jsonify({"status": "success", "message": f"LED set to R:{red} G:{green} B:{blue}"})
+        except Exception as e:
+            logger.error(f"Failed to control LED: {e}")
+            return jsonify({"status": "error", "message": str(e)})
+    else:
+        return jsonify({"status": "error", "message": "LED function not available"})
+
+@app.route('/api/alert', methods=['POST'])
+def trigger_alert():
+    """Trigger alert pattern"""
+    data = request.json
+    alert_type = data.get('type', 'info')
+    duration = data.get('duration', 2.0)
+    
+    if walking_stick_module and hasattr(walking_stick_module, 'alert_pattern'):
+        try:
+            walking_stick_module.alert_pattern(alert_type, duration)
+            return jsonify({"status": "success", "message": f"Alert pattern activated: {alert_type} for {duration}s"})
+        except Exception as e:
+            logger.error(f"Failed to trigger alert pattern: {e}")
+            return jsonify({"status": "error", "message": str(e)})
+    else:
+        return jsonify({"status": "error", "message": "Alert function not available"})
 
 @socketio.on('connect')
 def handle_connect():
@@ -273,12 +349,20 @@ def generate_mock_data():
                         random.randint(50, 200), random.randint(50, 200)]
             })
     
+    # Mock GPIO states (randomly change states occasionally)
+    gpio_status = device_status["gpio_status"].copy()
+    if random.random() < 0.02:  # 2% chance of LED change
+        # Randomly select one LED to toggle
+        led_choice = random.choice(["led_red", "led_green", "led_blue"])
+        gpio_status[led_choice] = not gpio_status[led_choice]
+    
     return {
         "distance": distance,
         "accelerometer": {"x": accel_x, "y": accel_y, "z": accel_z},
         "fall_detected": fall_detected,
         "gps_location": {"lat": lat, "lon": lon},
-        "obstacles": obstacles
+        "obstacles": obstacles,
+        "gpio_status": gpio_status
     }
 
 def background_thread():
@@ -323,6 +407,25 @@ def background_thread():
                 
                 if hasattr(walking_stick_module, 'model'):
                     device_status["components_status"]["model"] = walking_stick_module.model is not None
+                
+                # Update GPIO pin status
+                if hasattr(walking_stick_module, 'GPIO'):
+                    try:
+                        device_status["gpio_status"]["led_red"] = (
+                            walking_stick_module.GPIO.input(walking_stick_module.LED_RED_PIN) == walking_stick_module.GPIO.HIGH
+                        )
+                        device_status["gpio_status"]["led_green"] = (
+                            walking_stick_module.GPIO.input(walking_stick_module.LED_GREEN_PIN) == walking_stick_module.GPIO.HIGH
+                        )
+                        device_status["gpio_status"]["led_blue"] = (
+                            walking_stick_module.GPIO.input(walking_stick_module.LED_BLUE_PIN) == walking_stick_module.GPIO.HIGH
+                        )
+                        device_status["gpio_status"]["buzzer"] = (
+                            walking_stick_module.GPIO.input(walking_stick_module.BUZZER_PIN) == walking_stick_module.GPIO.HIGH
+                        )
+                        # Vibration motor status is harder to check with PWM, so we'll skip it for now
+                    except Exception as e:
+                        logger.error(f"Error reading GPIO status: {e}")
                 
                 device_status["connected"] = True
             else:

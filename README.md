@@ -25,22 +25,104 @@ This project provides a web interface for connecting to and controlling a smart 
 - Web browser with JavaScript enabled
 - Internet connection for map functionality
 
+## Hardware Requirements (Raspberry Pi 4 B)
+- Raspberry Pi 4 Model B
+- MPU6050 3-Axis Gyroscope/Accelerometer
+- HC-SR04 Ultrasonic Distance Sensor
+- RGB LED
+- Buzzer
+- Vibration Motor
+- Emergency Button
+- Raspberry Pi Camera Module V2 or better
+- GPS Module (Compatible with GPSD)
+- Power supply (5V/3A recommended)
+- microSD card (16GB or larger)
+
+## Pin Configuration
+- MPU6050: 
+  - SDA → GPIO2 (Pin 3)
+  - SCL → GPIO3 (Pin 5)
+  - VCC → 3.3V
+  - GND → Ground
+- Ultrasonic Sensor:
+  - TRIG → GPIO23
+  - ECHO → GPIO24
+  - VCC → 5V
+  - GND → Ground
+- RGB LED:
+  - Red → GPIO5
+  - Green → GPIO6
+  - Blue → GPIO13
+  - GND → Ground
+- Other Components:
+  - Button → GPIO27
+  - Buzzer → GPIO22
+  - Vibration Motor → GPIO18
+
 ## Installation
 
-### On Raspberry Pi (with hardware)
+### On Raspberry Pi 4 B
 
-1. Clone this repository to your Raspberry Pi:
+1. Install Raspberry Pi OS (64-bit recommended):
+   ```bash
+   # Download and flash Raspberry Pi OS to your SD card using Raspberry Pi Imager
+   # Enable SSH, I2C, and Camera interfaces during installation
+   ```
 
-```bash
-git clone https://github.com/yourusername/vision-mate.git
-cd vision-mate
-```
+2. Initial Setup:
+   ```bash
+   # Update system packages
+   sudo apt-get update
+   sudo apt-get upgrade -y
+   
+   # Install git
+   sudo apt-get install git -y
+   ```
 
-2. Install the required Python packages:
+3. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/vision-mate.git
+   cd vision-mate
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+4. Run the setup script:
+   ```bash
+   chmod +x setup_pi.sh
+   ./setup_pi.sh
+   ```
+
+5. Reboot the Raspberry Pi:
+   ```bash
+   sudo reboot
+   ```
+
+6. After reboot, activate the virtual environment:
+   ```bash
+   cd vision-mate
+   source venv/bin/activate
+   ```
+
+7. Configure YOLO:
+   ```bash
+   # Download YOLO tiny weights and config
+   wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/yolov4-tiny.weights
+   wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4-tiny.cfg
+   wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/data/coco.names
+   ```
+
+8. Test the hardware:
+   ```bash
+   # Check I2C devices (should see address 0x68 for MPU6050)
+   sudo i2cdetect -y 1
+   
+   # Test camera
+   raspistill -o test.jpg
+   ```
+
+9. Start the application:
+   ```bash
+   python app.py
+   ```
 
 ### On Windows (development/simulation)
 
@@ -117,4 +199,32 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - This project uses Flask, a lightweight WSGI web application framework for Python
 - Socket.IO is used for real-time communication
 - OpenCV is used for computer vision features
-- Bootstrap is used for the UI components 
+- Bootstrap is used for the UI components
+
+## Hardware Verification
+
+Before running the application, verify:
+1. MPU6050 is detected on I2C bus
+2. Camera module is properly connected
+3. All GPIO pins are correctly wired
+4. GPS module is recognized by the system
+5. Bluetooth audio device is paired (if using)
+
+## Bluetooth Audio Setup
+
+1. Pair your Bluetooth headset:
+   ```bash
+   sudo bluetoothctl
+   # In bluetoothctl:
+   scan on
+   pair [MAC_ADDRESS]
+   trust [MAC_ADDRESS]
+   connect [MAC_ADDRESS]
+   quit
+   ```
+
+2. Test audio output:
+   ```bash
+   # Play test sound through Bluetooth
+   aplay -D bluealsa:HCI=hci0,DEV=[MAC_ADDRESS],PROFILE=a2dp test.wav
+   ```

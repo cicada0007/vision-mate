@@ -1,13 +1,17 @@
 flask>=2.0.1
 flask-socketio>=5.1.1
-opencv-python>=4.5.3
+opencv-python-headless>=4.5.3  # Better performance for Raspberry Pi
 numpy>=1.21.2
 RPi.GPIO==0.7.0
-pyserial>=3.5
 gpsd-py3==0.3.0
 smbus2==0.4.1
 pyttsx3==2.90
 pillow>=8.3.1
 gunicorn==20.1.0
 python-engineio>=4.3.1
-python-socketio>=5.5.2 
+python-socketio>=5.5.2
+sounddevice>=0.4.4
+picamera2>=0.3.12  # Native Raspberry Pi camera support
+i2c-tools>=4.3  # For I2C communication with MPU6050
+gpiozero>=1.6.2  # Additional GPIO utilities
+adafruit-blinka>=6.0.0  # Circuit Python support

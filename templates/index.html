@@ -161,6 +161,80 @@
                         </ul>
                     </div>
                 </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-microchip me-2"></i>GPIO Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- LED Controls -->
+                        <div class="mb-3">
+                            <label class="form-label">LED Controls</label>
+                            <div class="d-flex gap-2 mb-2">
+                                <button id="led-red-btn" class="btn btn-outline-danger flex-grow-1">
+                                    <i class="fas fa-lightbulb me-1"></i>Red LED
+                                </button>
+                                <button id="led-green-btn" class="btn btn-outline-success flex-grow-1">
+                                    <i class="fas fa-lightbulb me-1"></i>Green LED
+                                </button>
+                                <button id="led-blue-btn" class="btn btn-outline-primary flex-grow-1">
+                                    <i class="fas fa-lightbulb me-1"></i>Blue LED
+                                </button>
+                            </div>
+                            <div class="d-grid">
+                                <button id="led-off-btn" class="btn btn-outline-secondary">
+                                    <i class="fas fa-power-off me-1"></i>All LEDs Off
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Vibration Control -->
+                        <div class="mb-3">
+                            <label class="form-label">Vibration Motor</label>
+                            <div class="row g-2">
+                                <div class="col-8">
+                                    <input type="range" class="form-range" id="vibration-intensity" min="0" max="100" step="10" value="70">
+                                </div>
+                                <div class="col-4">
+                                    <div class="d-grid">
+                                        <button id="vibrate-btn" class="btn btn-warning">
+                                            <i class="fas fa-vibrate me-1"></i>Vibrate
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Buzzer Control -->
+                        <div class="mb-3">
+                            <label class="form-label">Buzzer</label>
+                            <div class="d-flex gap-2">
+                                <button id="buzzer-short-btn" class="btn btn-outline-dark flex-grow-1">
+                                    <i class="fas fa-volume-up me-1"></i>Short Beep
+                                </button>
+                                <button id="buzzer-long-btn" class="btn btn-outline-dark flex-grow-1">
+                                    <i class="fas fa-volume-up me-1"></i>Long Beep
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Alert Patterns -->
+                        <div class="mb-3">
+                            <label class="form-label">Alert Patterns</label>
+                            <div class="d-flex gap-2">
+                                <button id="alert-info-btn" class="btn btn-info flex-grow-1">
+                                    <i class="fas fa-info-circle me-1"></i>Info Alert
+                                </button>
+                                <button id="alert-warning-btn" class="btn btn-warning flex-grow-1">
+                                    <i class="fas fa-exclamation-circle me-1"></i>Warning
+                                </button>
+                                <button id="alert-danger-btn" class="btn btn-danger flex-grow-1">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Danger
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
