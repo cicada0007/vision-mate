@@ -151,8 +151,12 @@
                                 <span id="gps-status" class="badge bg-danger rounded-pill">Offline</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Bluetooth
-                                <span id="bluetooth-status" class="badge bg-danger rounded-pill">Offline</span>
+                                Audio Output
+                                <span id="audio-status" class="badge bg-danger rounded-pill">No Device</span>
+                            </li>
+                            <li id="audio-device-info" class="list-group-item d-none">
+                                <small class="text-muted">Connected Device:</small>
+                                <span id="audio-device-name">None</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 Object Detection
@@ -235,6 +239,42 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-volume-up me-2"></i>Audio Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Audio Device Selection -->
+                        <div class="mb-3">
+                            <label class="form-label">Audio Output Device</label>
+                            <select id="audio-device-select" class="form-select">
+                                <option value="">System Default</option>
+                                <!-- Audio devices will be populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Test Audio -->
+                        <div class="mb-3">
+                            <button id="test-audio-btn" class="btn btn-outline-primary">
+                                <i class="fas fa-play me-1"></i>Test Audio
+                            </button>
+                        </div>
+
+                        <!-- Volume Control -->
+                        <div class="mb-3">
+                            <label class="form-label">Volume</label>
+                            <div class="row g-2">
+                                <div class="col-10">
+                                    <input type="range" class="form-range" id="volume-slider" min="0" max="100" value="75">
+                                </div>
+                                <div class="col-2">
+                                    <span id="volume-value">75%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -266,5 +306,56 @@
     <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+    // Add new audio-related functions to existing JavaScript
+    function updateAudioStatus(status) {
+        const audioStatus = document.getElementById('audio-status');
+        const audioDeviceInfo = document.getElementById('audio-device-info');
+        const audioDeviceName = document.getElementById('audio-device-name');
+        
+        if (status.audio && status.audio.status) {
+            audioStatus.textContent = 'Connected';
+            audioStatus.classList.remove('bg-danger');
+            audioStatus.classList.add('bg-success');
+            
+            if (status.audio.message.includes('Connected')) {
+                audioDeviceInfo.classList.remove('d-none');
+                audioDeviceName.textContent = status.audio.message;
+            }
+        } else {
+            audioStatus.textContent = 'No Device';
+            audioStatus.classList.remove('bg-success');
+            audioStatus.classList.add('bg-danger');
+            audioDeviceInfo.classList.add('d-none');
+        }
+    }
+
+    // Volume control handler
+    document.getElementById('volume-slider').addEventListener('input', function(e) {
+        const value = e.target.value;
+        document.getElementById('volume-value').textContent = `${value}%`;
+        // Send volume update to server
+        socket.emit('set_volume', { volume: parseInt(value) });
+    });
+
+    // Test audio button handler
+    document.getElementById('test-audio-btn').addEventListener('click', function() {
+        fetch('/api/speak', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: "Audio test message" })
+        });
+    });
+
+    // Update the hardware status handler to include audio
+    socket.on('hardware_status', function(data) {
+        // ... existing status updates ...
+        if (data.audio) {
+            updateAudioStatus(data);
+        }
+    });
+    </script>
 </body>
-</html> 
+</html>

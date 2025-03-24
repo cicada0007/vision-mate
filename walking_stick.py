@@ -556,10 +556,134 @@ def connect_wireless_audio():
         logger.error(f"Error connecting to wireless audio: {e}")
         return False
 
-# Update the startup function to initialize and test all components
+# Add hardware detection function
+def check_hardware():
+    """Check hardware connections and report status"""
+    hardware_status = {
+        "mpu6050": {
+            "status": False,
+            "message": "Not detected"
+        },
+        "gpio": {
+            "status": False,
+            "message": "Not configured"
+        },
+        "camera": {
+            "status": False,
+            "message": "Not connected"
+        },
+        "audio": {
+            "status": False,
+            "message": "No audio device"
+        },
+        "gps": {
+            "status": False,
+            "message": "No fix"
+        }
+    }
+    
+    # Test MPU6050
+    try:
+        bus = SMBus(1)
+        who_am_i = bus.read_byte_data(MPU6050_ADDR, MPU6050_WHO_AM_I)
+        if who_am_i == 0x68:
+            hardware_status["mpu6050"]["status"] = True
+            hardware_status["mpu6050"]["message"] = "Connected"
+    except Exception as e:
+        hardware_status["mpu6050"]["message"] = f"Error: {str(e)}"
+    
+    # Test GPIO
+    try:
+        test_pins = [TRIG, ECHO, LED_PIN, BUTTON_PIN, VIBRATION_MOTOR_PIN, 
+                     BUZZER_PIN, LED_RED_PIN, LED_GREEN_PIN, LED_BLUE_PIN]
+        for pin in test_pins:
+            GPIO.setup(pin, GPIO.OUT)
+        hardware_status["gpio"]["status"] = True
+        hardware_status["gpio"]["message"] = "Configured"
+    except Exception as e:
+        hardware_status["gpio"]["message"] = f"Error: {str(e)}"
+    
+    # Test Camera
+    try:
+        if camera and camera.isOpened():
+            hardware_status["camera"]["status"] = True
+            hardware_status["camera"]["message"] = "Connected"
+        else:
+            hardware_status["camera"]["message"] = "Not available"
+    except Exception as e:
+        hardware_status["camera"]["message"] = f"Error: {str(e)}"
+    
+    # Test Audio
+    try:
+        if audio_device is not None:
+            hardware_status["audio"]["status"] = True
+            hardware_status["audio"]["message"] = "Connected"
+        else:
+            wireless_devices = get_wireless_audio_devices()
+            if wireless_devices:
+                hardware_status["audio"]["status"] = True
+                hardware_status["audio"]["message"] = "Available"
+            else:
+                hardware_status["audio"]["message"] = "No wireless devices found"
+    except Exception as e:
+        hardware_status["audio"]["message"] = f"Error: {str(e)}"
+    
+    # Test GPS
+    try:
+        packet = gpsd.get_current()
+        if packet.mode >= 2:
+            hardware_status["gps"]["status"] = True
+            hardware_status["gps"]["message"] = f"Fix acquired ({packet.mode}D)"
+        else:
+            hardware_status["gps"]["message"] = "No GPS fix"
+    except Exception as e:
+        hardware_status["gps"]["message"] = f"Error: {str(e)}"
+    
+    return hardware_status
+
+# Add get_hardware_status function
+def get_hardware_status():
+    """Get current hardware status for web interface"""
+    try:
+        status = check_hardware()
+        # Add version information
+        status["system_info"] = {
+            "python_version": sys.version.split()[0],
+            "opencv_version": cv2.__version__,
+            "user": os.getenv('USER', 'unknown')
+        }
+        return status
+    except Exception as e:
+        logger.error(f"Error getting hardware status: {e}")
+        return None
+
+# Modify startup_sequence to use hardware check
 def startup_sequence():
     """Execute startup sequence to test all components"""
     try:
+        logger.info("Starting hardware detection sequence...")
+        
+        # Check all hardware components
+        hw_status = check_hardware()
+        
+        # Report results
+        for component, status in hw_status.items():
+            if status:
+                logger.info(f"{component.upper()}: CONNECTED ✓")
+            else:
+                logger.error(f"{component.UPPER()}: NOT DETECTED ✗")
+        
+        # Add detailed I2C debugging
+        if not hw_status["mpu6050"]:
+            try:
+                logger.info("Scanning I2C bus...")
+                os.system('i2cdetect -y 1')
+                logger.info("Checking I2C permissions...")
+                os.system('ls -l /dev/i2c*')
+            except Exception as e:
+                logger.error(f"I2C debug failed: {str(e)}")
+        
+        # Continue with rest of startup sequence
         # Try to connect to wireless audio device
         if connect_wireless_audio():
             logger.info("Wireless audio device connected")
@@ -589,138 +713,79 @@ def startup_sequence():
         logger.info("Startup sequence completed")
         return True
     except Exception as e:
-        logger.error(f"Startup sequence error: {e}")
+        logger.error(f"Startup sequence error: {str(e)}")
         return False
+
+# Modify main to include more detailed error reporting
+if __name__ == "__main__":
+    try:
+        logger.info("=== Vision Mate Starting ===")
+        logger.info(f"Python version: {sys.version}")
+        logger.info(f"OpenCV version: {cv2.__version__}")
+        logger.info(f"Running as user: {os.getenv('USER')}")
+        logger.info("Checking hardware permissions...")
+        os.system('groups')
+        
+        # Start the system
+        send_message("Walking stick system starting up. Please wait.")
+        startup_result = startup_sequence()
+        
+        # Check if all components initialized properly
+        missing_components = []
+        if mpu is None:
+            missing_components.append("accelerometer")
+        if camera is None or not camera.isOpened():
+            missing_components.append("camera")
+        if model is None:
+            missing_components.append("obstacle detection model")
+        if bluetooth_serial is None:
+            missing_components.append("Bluetooth")
+        
+        if missing_components:
+            send_message(f"Warning: The following components are not working: {', '.join(missing_components)}. Limited functionality available.")
+            # Use warning alert pattern
+            alert_pattern('warning', 2.0)
+        else:
+            send_message("All systems operational. Walking stick ready.")
+            # Use info alert pattern
+            alert_pattern('info', 2.0)
+        
+        # Start main loop
+        main_loop()
+        
+    except Exception as e:
+        logger.error(f"Critical error during startup: {str(e)}")
+        send_message("System encountered critical error. Please check logs.")
 
 def main_loop():
     """Main program loop"""
-    last_obstacle_warning = 0
-    last_gps_report = 0
-    fall_detected_time = 0
-    last_audio_check = 0
-    audio_check_interval = 30  # Check audio connection every 30 seconds
+    last_hardware_check = 0
+    hardware_check_interval = 5  # Check hardware every 5 seconds
     
-    try:
-        while True:
+    while True:
+        try:
             current_time = time.time()
             
-            # Periodically check wireless audio connection
-            if current_time - last_audio_check > audio_check_interval:
-                last_audio_check = current_time
-                if audio_device is None:
-                    connect_wireless_audio()
+            # Periodic hardware status check
+            if current_time - last_hardware_check > hardware_check_interval:
+                hardware_status = get_hardware_status()
+                device_status["hardware"] = hardware_status
+                last_hardware_check = current_time
             
-            # Check for falls
-            if mpu and detect_fall():
-                if current_time - fall_detected_time > 10:  # Limit alerts to once per 10 seconds
-                    fall_detected_time = current_time
-                    send_message("Fall detected! Are you okay?")
-                    
-                    # Use the new alert_pattern function for fall detection
-                    alert_pattern('danger', 3.0)
-                    
-                    # Wait for a few seconds to see if button is pressed
-                    time.sleep(5)
-                    send_message("If you need help, press the emergency button.")
+            # Rest of your main loop code...
             
-            # Get ultrasonic distance
-            distance = get_distance()
+            time.sleep(0.1)  # Prevent CPU overuse
             
-            # Process camera frame if available
-            obstacles = []
-            if camera and camera.isOpened():
-                ret, frame = camera.read()
-                if ret:
-                    # Process frame to detect obstacles
-                    processed_frame, obstacles = process_frame(frame)
-                    
-                    # Display frame (remove in production)
-                    cv2.imshow("Walking Stick Vision", processed_frame)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
-            
-            # Check for obstacles from ultrasonic sensor
-            if distance < OBSTACLE_DISTANCE_THRESHOLD:
-                if current_time - last_obstacle_warning > 2:  # Limit warnings to once per 2 seconds
-                    last_obstacle_warning = current_time
-                    send_message(f"Obstacle ahead, {distance:.1f} centimeters!")
-                    
-                    # Use vibration and LEDs for obstacle warning
-                    if distance < 50:  # Very close obstacle
-                        alert_pattern('danger', 1.5)
-                    else:  # Moderately close obstacle
-                        alert_pattern('warning', 1.0)
-            
-            # Check for obstacles from camera
-            if obstacles and current_time - last_obstacle_warning > 2:
-                # Get closest obstacle
-                closest = min(obstacles, key=lambda x: x['estimated_distance'])
-                last_obstacle_warning = current_time
-                
-                # Generate directional warning
-                send_message(f"{closest['class']} detected to your {closest['position']}!")
-                
-                # Adjust alert type based on object class and distance
-                if closest['class'] in ['person', 'car', 'bicycle', 'motorcycle'] and closest['estimated_distance'] < 200:
-                    alert_pattern('warning', 1.5)
-                else:
-                    alert_pattern('info', 1.0)
-            
-            # Periodic GPS reporting (every 5 minutes)
-            if current_time - last_gps_report > 300:
-                lat, lon = get_gps_location()
-                if lat and lon:
-                    last_gps_report = current_time
-                    # Just log GPS, don't announce it unless requested
-                    logger.info(f"Current location: Latitude {lat:.6f}, Longitude {lon:.6f}")
-            
-            # Update Bluetooth status LED
-            if bluetooth_serial and bluetooth_serial.isOpen():
-                update_bluetooth_status(True)
-            else:
-                update_bluetooth_status(False)
-            
-            # Sleep to reduce CPU usage
-            time.sleep(0.1)
-    
-    except KeyboardInterrupt:
-        logger.info("Program terminated by user")
-    finally:
-        # Clean up
-        if camera and camera.isOpened():
-            camera.release()
-        cv2.destroyAllWindows()
-        GPIO.cleanup()
-        if bluetooth_serial:
-            bluetooth_serial.close()
-        logger.info("Resources released")
+        except Exception as e:
+            logger.error(f"Error in main loop: {e}")
+            time.sleep(1)
 
-if __name__ == "__main__":
-    # Startup announcement
-    send_message("Walking stick system starting up. Please wait.")
-    
-    # Run startup sequence to test components
-    startup_result = startup_sequence()
-    
-    # Check if all components initialized properly
-    missing_components = []
-    if mpu is None:
-        missing_components.append("accelerometer")
-    if camera is None or not camera.isOpened():
-        missing_components.append("camera")
-    if model is None:
-        missing_components.append("obstacle detection model")
-    if bluetooth_serial is None:
-        missing_components.append("Bluetooth")
-    
-    if missing_components:
-        send_message(f"Warning: The following components are not working: {', '.join(missing_components)}. Limited functionality available.")
-        # Use warning alert pattern
-        alert_pattern('warning', 2.0)
-    else:
-        send_message("All systems operational. Walking stick ready.")
-        # Use info alert pattern
-        alert_pattern('info', 2.0)
-    
-    # Start main loop
-    main_loop()
+@socketio.on('request_hardware_status')
+def handle_hardware_status_request():
+    """Handle hardware status request from web client"""
+    try:
+        status = get_hardware_status()
+        emit('hardware_status', status)
+    except Exception as e:
+        logger.error(f"Error sending hardware status: {e}")
+        emit('hardware_status', {"error": str(e)})
